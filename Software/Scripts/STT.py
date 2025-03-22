@@ -1,6 +1,4 @@
 import sys
-import tkinter as tk
-import customtkinter as ctk  # Modern UI
 import threading
 import json
 import queue
@@ -9,7 +7,6 @@ import sounddevice as sd
 import numpy as np
 from vosk import Model, KaldiRecognizer
 from langdetect import detect
-from tkinter import messagebox
 
 # 🔹 Model Paths
 ARABIC_MODEL_PATH = r"E:\Desktop\EchoLens\Software\Models\vosk-model-ar-0.22-linto-1.1.0"
@@ -61,7 +58,7 @@ def recognize_speech():
         model = english_model
     
     if model is None:
-        messagebox.showerror("Error", "Selected language model is missing!")
+        print("❌ Error: Selected language model is missing!")
         recording = False  # Make sure to set recording to False
         return
     
@@ -94,7 +91,7 @@ def recognize_speech():
                     text = result.get("text", "")
                     
                     if text:  # Only process non-empty text
-                        update_text(text)
+                        print(f"Transcribed Text: {text}")  # Output text to console
                         
                         # In Auto mode, switch models if needed
                         if selected_language == "Auto":
@@ -112,20 +109,6 @@ def recognize_speech():
                 recording = False
                 break
 
-# 🏆 Update Text in UI
-def update_text(text):
-    if not text.strip():  # Skip empty text
-        return
-        
-    # Use after method to update UI from a different thread
-    root.after(0, lambda: _update_text_safe(text))
-
-def _update_text_safe(text):
-    transcription_text.configure(state="normal")
-    transcription_text.insert(tk.END, text + "\n")
-    transcription_text.see(tk.END)  # Auto-scroll to the latest text
-    transcription_text.configure(state="disabled")
-
 # ✅ Start Recording
 def start_recording():
     global recording
@@ -139,32 +122,14 @@ def start_recording():
         q.get()
         
     recording = True
-    start_button.configure(state="disabled")
-    stop_button.configure(state="normal")
+    print("🎤 Recording started...")
     threading.Thread(target=recognize_speech, daemon=True).start()
 
 # ❌ Stop Recording
 def stop_recording():
     global recording
     recording = False
-    start_button.configure(state="normal")
-    stop_button.configure(state="disabled")
-
-# 📋 Copy to Clipboard
-def copy_text():
-    text = transcription_text.get("1.0", tk.END).strip()
-    if text:
-        root.clipboard_clear()
-        root.clipboard_append(text)
-        messagebox.showinfo("Copied", "Text copied to clipboard!")
-    else:
-        messagebox.showinfo("Info", "No text to copy!")
-
-# 🧹 Clear Text
-def clear_text():
-    transcription_text.configure(state="normal")
-    transcription_text.delete("1.0", tk.END)
-    transcription_text.configure(state="disabled")
+    print("🛑 Recording stopped.")
 
 # 🔄 Change Language
 def change_language(new_lang):
@@ -176,64 +141,37 @@ def change_language(new_lang):
         stop_recording()
         
     selected_language = new_lang
+    print(f"🌍 Language changed to: {new_lang}")
     
     # Restart recording if it was active
     if was_recording:
         start_recording()
 
-# 🎨 GUI Design
-ctk.set_appearance_mode("dark")
-root = ctk.CTk()
-root.title("Speech-to-Text Converter")
-root.geometry("600x500")
-root.protocol("WM_DELETE_WINDOW", lambda: (stop_recording(), root.destroy()))  # Clean shutdown
-
-# 🏆 Title Label
-title_label = ctk.CTkLabel(root, text="🎤 Speech-to-Text Converter", font=("Arial", 20))
-title_label.pack(pady=10)
-
-# 🌍 Language Selection
-lang_frame = ctk.CTkFrame(root)
-lang_frame.pack(pady=10)
-
-lang_label = ctk.CTkLabel(lang_frame, text="Select Language:")
-lang_label.pack(side="left", padx=5)
-
-lang_options = ["English", "Arabic", "Auto"]
-lang_menu = ctk.CTkOptionMenu(lang_frame, values=lang_options, command=change_language)
-lang_menu.set("Auto")
-lang_menu.pack(side="right", padx=5)
-
-# 📜 Transcription Textbox
-transcription_frame = ctk.CTkFrame(root)
-transcription_frame.pack(pady=10, fill="both", expand=True, padx=20)
-
-transcription_text = ctk.CTkTextbox(transcription_frame, wrap="word")
-transcription_text.pack(fill="both", expand=True, padx=5, pady=5)
-transcription_text.configure(state="disabled")
-
-# 🎤 Buttons
-button_frame = ctk.CTkFrame(root)
-button_frame.pack(pady=10)
-
-start_button = ctk.CTkButton(button_frame, text="Start Recording 🎤", command=start_recording)
-start_button.grid(row=0, column=0, padx=5)
-
-stop_button = ctk.CTkButton(button_frame, text="Stop Recording 🛑", command=stop_recording)
-stop_button.grid(row=0, column=1, padx=5)
-stop_button.configure(state="disabled")  # Initially disabled
-
-clear_button = ctk.CTkButton(button_frame, text="Clear Text 🧹", command=clear_text)
-clear_button.grid(row=0, column=2, padx=5)
-
-copy_button = ctk.CTkButton(button_frame, text="Copy to Clipboard 📋", command=copy_text)
-copy_button.grid(row=0, column=3, padx=5)
-
-# Status indicator
-status_var = tk.StringVar(value="Ready")
-status_label = ctk.CTkLabel(root, textvariable=status_var)
-status_label.pack(pady=5)
-
-# 🌍 Run App
+# 🌍 Main Function
 if __name__ == "__main__":
-    root.mainloop()
+    print("🎤 Speech-to-Text Converter (SW Only)")
+    print("Commands:")
+    print("1. Type 'start' to begin recording.")
+    print("2. Type 'stop' to stop recording.")
+    print("3. Type 'lang <language>' to change language (e.g., 'lang English').")
+    print("4. Type 'exit' to quit.")
+
+    while True:
+        command = input("> ").strip().lower()
+        
+        if command == "start":
+            start_recording()
+        elif command == "stop":
+            stop_recording()
+        elif command.startswith("lang "):
+            new_lang = command.split(" ", 1)[1].capitalize()
+            if new_lang in ["English", "Arabic", "Auto"]:
+                change_language(new_lang)
+            else:
+                print("❌ Invalid language. Choose 'English', 'Arabic', or 'Auto'.")
+        elif command == "exit":
+            stop_recording()
+            print("👋 Exiting...")
+            break
+        else:
+            print("❌ Invalid command. Try 'start', 'stop', 'lang <language>', or 'exit'.")
